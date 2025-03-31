@@ -2,6 +2,8 @@ package ex
 
 import util.Optionals.Optional
 import util.Sequences.* // Assuming Sequence and related methods are here
+import util.Sequences.Sequence.{Nil, Cons, *}
+import util.Optionals.Optional
 
 // Represents a course offered on the platform
 trait Course:
@@ -12,7 +14,17 @@ trait Course:
 
 object Course:
   // Factory method for creating Course instances
-  def apply(courseId: String, title: String, instructor: String, category: String): Course = ???
+  def apply(courseId: String, title: String, instructor: String, category: String): Course = CourseImpl(courseId, title, instructor, category)
+
+case class CourseImpl(id: String, courseTitle: String, instructorName: String, courseCategory: String) extends Course:
+  def courseId: String = id
+
+  def title: String = courseTitle
+
+  def instructor: String = instructorName
+
+  def category: String = courseCategory
+
 /**
  * Manages courses and student enrollments on an online learning platform.
  */
@@ -86,7 +98,7 @@ end OnlineCoursePlatform
 
 object OnlineCoursePlatform:
   // Factory method for creating an empty platform instance
-  def apply(): OnlineCoursePlatform = ??? // Fill Here!
+  def apply(): OnlineCoursePlatform = OnlineCoursePlatformImpl()
 
 /**
  * Represents an online learning platform that offers courses and manages student enrollments.
@@ -101,6 +113,97 @@ object OnlineCoursePlatform:
  *  - Now start incrementally following the main given
  *
  */
+
+case class OnlineCoursePlatformImpl() extends OnlineCoursePlatform:
+
+  var courses: Sequence[Course] = Nil()
+  var enrollment: Sequence[(String, String)] = Nil()
+
+  /**
+   * Adds a new course to the platform's catalog.
+   *
+   * @param course The course to add.
+   */
+  def addCourse(course: Course): Unit = courses = Cons(course, courses)
+
+  /**
+   * Finds courses belonging to a specific category.
+   *
+   * @param category The category to search for.
+   * @return A sequence of courses in that category.
+   */
+  def findCoursesByCategory(category: String): Sequence[Course] = courses.filter(c => c.category == category)
+
+  /**
+   * Retrieves a specific course by its unique ID.
+   *
+   * @param courseId The ID of the course to retrieve.
+   * @return An Optional containing the course if found, otherwise Optional.empty.
+   */
+  def getCourse(courseId: String): Optional[Course] = courses.filter(c => c.courseId == courseId).head
+
+  /**
+   * Removes a course from the platform's catalog.
+   * (Note: This basic version doesn't handle cascading removal of enrollments).
+   *
+   * @param course The course to remove.
+   */
+  def removeCourse(course: Course): Unit = courses = courses.filter(c => c.courseId != course.courseId)
+
+  /**
+   * Checks if a course with the given ID exists in the catalog.
+   *
+   * @param courseId The ID to check.
+   * @return true if the course exists, false otherwise.
+   */
+  def isCourseAvailable(courseId: String): Boolean = courses.filter(c => c.courseId == courseId) match
+    case Cons(_, _) => true
+    case _ => false
+
+  /**
+   * Enrolls a student in a specific course.
+   * Assumes studentId is unique for each student.
+   *
+   * @param studentId The ID of the student.
+   * @param courseId  The ID of the course to enroll in.
+   *                  Fails silently if the course doesn't exist.
+   */
+  def enrollStudent(studentId: String, courseId: String): Unit =
+    if isCourseAvailable(courseId)
+    then enrollment = Cons((courseId, studentId), enrollment)
+
+  /**
+   * Unenrolls a student from a specific course.
+   *
+   * @param studentId The ID of the student.
+   * @param courseId  The ID of the course to unenroll from.
+   */
+  def unenrollStudent(studentId: String, courseId: String): Unit = enrollment = enrollment.filter((c, s) => c == courseId & s == studentId)
+
+  /**
+   * Retrieves all courses a specific student is enrolled in.
+   *
+   * @param studentId The ID of the student.
+   * @return A sequence of courses the student is enrolled in.
+   */
+  def getStudentEnrollments(studentId: String): Sequence[Course] =
+    val coursesID = enrollment.filter((c, s) => s == studentId).map((c, s) => c) //sequenza di stringhe
+    var acc = Nil()
+    for id <- coursesID
+      do acc = acc.concat(courses.filter(c => c.courseId == id).head.orElse(Nil()))
+
+
+  /**
+   * Checks if a student is enrolled in a specific course.
+   *
+   * @param studentId The ID of the student.
+   * @param courseId  The ID of the course.
+   * @return true if the student is enrolled, false otherwise.
+   */
+  def isStudentEnrolled(studentId: String, courseId: String): Boolean = enrollment.filter((c, s) => c == courseId & s == studentId) match
+    case Cons(_, _) => true
+    case _ => false
+
 @main def mainPlatform(): Unit =
   val platform = OnlineCoursePlatform()
 
@@ -127,16 +230,16 @@ object OnlineCoursePlatform:
 
   println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // false
   platform.enrollStudent(studentAlice, "SCALA01")
-  println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // true
+  println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // true TODO
   platform.enrollStudent(studentAlice, "DESIGN01")
   platform.enrollStudent(studentBob, "SCALA01") // Bob also enrolls in Scala
 
-  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(scalaCourse, designCourse) - Order might vary
-  println(s"Bob's enrollments: ${platform.getStudentEnrollments(studentBob)}") // Sequence(scalaCourse)
+  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(scalaCourse, designCourse) - Order might vary TODO
+  println(s"Bob's enrollments: ${platform.getStudentEnrollments(studentBob)}") // Sequence(scalaCourse) TODO
 
   platform.unenrollStudent(studentAlice, "SCALA01")
   println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // false
-  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(designCourse)
+  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(designCourse) TODO
 
   // Removal
   platform.removeCourse(pythonCourse)
