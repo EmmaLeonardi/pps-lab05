@@ -178,7 +178,7 @@ case class OnlineCoursePlatformImpl() extends OnlineCoursePlatform:
    * @param studentId The ID of the student.
    * @param courseId  The ID of the course to unenroll from.
    */
-  def unenrollStudent(studentId: String, courseId: String): Unit = enrollment = enrollment.filter((c, s) => c == courseId & s == studentId)
+  def unenrollStudent(studentId: String, courseId: String): Unit = enrollment = enrollment.filter((c, s) => !(c == courseId & s == studentId))
 
   /**
    * Retrieves all courses a specific student is enrolled in.
@@ -188,9 +188,11 @@ case class OnlineCoursePlatformImpl() extends OnlineCoursePlatform:
    */
   def getStudentEnrollments(studentId: String): Sequence[Course] =
     val coursesID = enrollment.filter((c, s) => s == studentId).map((c, s) => c) //sequenza di stringhe
-    var acc = Nil()
     for id <- coursesID
-      do acc = acc.concat(courses.filter(c => c.courseId == id).head.orElse(Nil()))
+      yield courses.filter(c => c.courseId == id) match
+        case Cons(h, _) => h
+        case _ => Course("empty", "empty", "empty", "empty")
+  //do acc = acc.concat(courses.filter(c => c.courseId == id).head.orElse(Nil()))
 
 
   /**
@@ -230,16 +232,16 @@ case class OnlineCoursePlatformImpl() extends OnlineCoursePlatform:
 
   println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // false
   platform.enrollStudent(studentAlice, "SCALA01")
-  println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // true TODO
+  println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // true
   platform.enrollStudent(studentAlice, "DESIGN01")
   platform.enrollStudent(studentBob, "SCALA01") // Bob also enrolls in Scala
 
-  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(scalaCourse, designCourse) - Order might vary TODO
-  println(s"Bob's enrollments: ${platform.getStudentEnrollments(studentBob)}") // Sequence(scalaCourse) TODO
+  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(scalaCourse, designCourse) - Order might vary
+  println(s"Bob's enrollments: ${platform.getStudentEnrollments(studentBob)}") // Sequence(scalaCourse)
 
   platform.unenrollStudent(studentAlice, "SCALA01")
   println(s"Is Alice enrolled in SCALA01? ${platform.isStudentEnrolled(studentAlice, "SCALA01")}") // false
-  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(designCourse) TODO
+  println(s"Alice's enrollments: ${platform.getStudentEnrollments(studentAlice)}") // Sequence(designCourse)
 
   // Removal
   platform.removeCourse(pythonCourse)
