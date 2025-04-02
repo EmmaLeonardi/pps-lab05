@@ -2,6 +2,8 @@ package util
 import Optionals.Optional.*
 import util.Optionals.Optional
 
+import scala.annotation.tailrec
+
 object Sequences: // Essentially, generic linkedlists
   
   enum Sequence[E]:
@@ -55,6 +57,15 @@ object Sequences: // Essentially, generic linkedlists
       def lenght(): Int = sequence match
         case Nil() => 0
         case Cons(_, t) => 1 + t.lenght()
+
+      def distinct(): Sequence[A] =
+        @tailrec
+        def _distinct[B](seq: Sequence[B], newSeq: Sequence[B]): Sequence[B] = seq match
+          case Nil() => newSeq
+          case Cons(h, t) if !newSeq.contains(h) => _distinct(t, newSeq.concat(Cons(h, Nil())))
+          case Cons(h, t) => _distinct(t, newSeq)
+
+        _distinct(sequence, Nil())
 
 @main def trySequences =
   import Sequences.* 
